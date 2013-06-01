@@ -7,8 +7,8 @@
 	<property name="report.dir" value="reports" />
 
 	<property name="report.junit.dir" value="${report.dir}/junit" />
-	<property name="coverage.report.dir" value="${report.dir}/coverage" />
-	<property name="coverage.report.dir" value="${report.dir}/coverage" />
+	<property name="report.coverage.dir" value="${report.dir}/coverage" />
+	<property name="report.checkstyle.dir" value="${report.dir}/cs" />
 
 
 	<path id="classpath">
@@ -18,7 +18,7 @@
 
 	<taskdef classpathref="classpath" resource="tasks.properties" />
 
-	<target name="build" depends="unit-test-report,coverage-report-html" />
+	<target name="build" depends="unit-test-report,coverage-report-html, report-checkstyle" />
 
 	<target name="clean">
 		<delete dir="${build.class.dir}" />
@@ -31,7 +31,8 @@
 		<mkdir dir="${build.instrumented.dir}" />
 		<mkdir dir="${report.junit.dir}/raw/" />
 		<mkdir dir="${report.junit.dir}/html/" />
-		<mkdir dir="${coverage.report.dir}" />
+		<mkdir dir="${report.coverage.dir}" />
+		<mkdir dir="${report.checkstyle.dir}"/>
 	</target>
 
 
@@ -69,7 +70,7 @@
 		<!-- code Instrument -->
 		<delete dir="${build.instrumented.dir}" />
 		<delete file="coberturaAlgo.ser" />
-		<delete dir="${coverage.report.dir}" />
+		<delete dir="${report.coverage.dir}" />
 		<cobertura-instrument todir="${build.instrumented.dir}" datafile="coberturaAlgo.ser">
 			<fileset dir="${build.class.dir}">
 				<include name="**/*.class" />
@@ -84,24 +85,41 @@
 			<classpath location="${build.instrumented.dir}" />
 			<classpath refid="classpath" />
 
-			<batchtest todir="${coverage.report.dir}">
+			<batchtest todir="${report.coverage.dir}">
 				<fileset dir="${test.dir}">
 					<include name="**/*Test*.java" />
 				</fileset>
 			</batchtest>
 		</junit>
 
-		<cobertura-report srcdir="${src.dir}" destdir="${coverage.report.dir}" datafile="coberturaAlgo.ser" />
+		<cobertura-report srcdir="${src.dir}" destdir="${report.coverage.dir}" datafile="coberturaAlgo.ser" />
 	</target>
 
 	<target name="coverage-report-html" depends="cover-test">
 		<!-- Generate an XML file containing the coverage data using	the "srcdir" attribute. -->
-		<cobertura-report srcdir="${src.dir}" destdir="${coverage.report.dir}" format="xml" datafile="coberturaAlgo.ser" />
+		<cobertura-report srcdir="${src.dir}" destdir="${report.coverage.dir}" format="xml" datafile="coberturaAlgo.ser" />
 
 		<!-- Generate an summary XML file containing the coverage data using the "srcdir" attribute. -->
-		<cobertura-report srcdir="${src.dir}" destdir="${coverage.report.dir}" format="summaryXml" datafile="coberturaAlgo.ser" />
+		<cobertura-report srcdir="${src.dir}" destdir="${report.coverage.dir}" format="summaryXml" datafile="coberturaAlgo.ser" />
 
-		<cobertura-report srcdir="${src.dir}" destdir="${coverage.report.dir}" datafile="coberturaAlgo.ser" />
+		<cobertura-report srcdir="${src.dir}" destdir="${report.coverage.dir}" datafile="coberturaAlgo.ser" />
 	</target>
 
+
+	<target name="report-checkstyle" description="Generate a report of code convention violations.">
+		<taskdef resource="checkstyletask.properties" classpathref="classpath" />
+
+		<!-- run verification of installation-->
+		<available file="lib/checkstyle-5.6-all.jar" property="checkstyle.available" />
+		<fail unless="checkstyle.available" message="Error: CHECKSTYLE_HOME not set or checkstyle-5.6-all.jar not found." />
+
+		<!-- run analysis-->
+		<checkstyle config="lib/CheckStyle.xml" failureProperty="checkstyle.failure" failOnViolation="false">
+			<formatter type="xml" tofile="${report.checkstyle.dir}/checkstyle_report.xml" />
+			<fileset dir="${src.dir}" includes="**/*.java" />
+		</checkstyle>
+
+		<xslt style="lib/checkstyle-noframes.xsl" in="${report.checkstyle.dir}/checkstyle_report.xml" out="${report.checkstyle.dir}/checkstyle_report.html"/>
+
+	</target>
 </project>
